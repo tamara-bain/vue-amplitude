@@ -102,7 +102,18 @@ class VueAmplitude {
     }
     return amplitude.getInstance().options.deviceId;
   }
+  identify(user_id) {
+    if (this._initialized !== true) {
+      console.error("init must be called for Amplitude before calling identify");
+      return;
+    }
+    if (this.user_id === undefined || this.user_id === null || this.user_id === '') {
+      console.error("User id must be defined to identify a user.");
+      return;
+    }
 
+    amplitude.getInstance().setUserId(user_id);
+  }
   secondary_device_id() {
     if (this._initialized !== true) {
       console.error("init must be called for Amplitude before accessing deviceId");
