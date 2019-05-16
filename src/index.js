@@ -1,4 +1,5 @@
 import amplitude from "amplitude-js";
+const SECONDARY_SUFFIX = '_secondary'
 
 function get_uuid(ph) {
   return ph ? ( ph ^ Math.random() * 16 >> ph / 4 ).toString(16)
@@ -13,14 +14,14 @@ function _init(key) {
   };
 
   amplitude.getInstance().init(key, null, config, (instance) => {
-    let data = instance.cookieStorage.get(instance.options.cookieName + instance._storageSuffix);
-    if (data.secondaryDeviceId) {
+    let data = instance.cookieStorage.get(instance.options.cookieName + instance._storageSuffix + SECONDARY_SUFFIX);
+    if (data && data.secondaryDeviceId) {
       instance.options.secondaryDeviceId = data.secondaryDeviceId;
     }
     else {
       instance.options.secondaryDeviceId = get_uuid();
     }
-    instance.cookieStorage.set(instance.options.cookieName + instance._storageSuffix, {
+    instance.cookieStorage.set(instance.options.cookieName + instance._storageSuffix + SECONDARY_SUFFIX, {
       secondaryDeviceId: instance.options.secondaryDeviceId
     });
 
