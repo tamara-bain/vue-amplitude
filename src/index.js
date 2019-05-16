@@ -1,5 +1,10 @@
 import amplitude from "amplitude-js";
 
+function get_uuid(ph) {
+  return ph ? ( ph ^ Math.random() * 16 >> ph / 4 ).toString(16)
+    : ( [1e7] + -1e3 + -4e3 + -8e3 + -1e11 ).replace(/[018]/g, get_uuid);
+}
+
 function _init(key, callback) {
   let config = {
     batchEvents: false,
@@ -7,11 +12,20 @@ function _init(key, callback) {
     includeUtm: true
   };
 
-  amplitude.getInstance().init(key, null, config, callback);
-}
+  const instance = amplitude.getInstance();
 
-function _deviceId() {
-  return amplitude.getInstance().options.deviceId;
+  let data = instance.cookieStorage.get(instance.options.cookieName + instance._storageSuffix);
+  if (data.secondaryDeviceId) {
+    instance.options.secondaryDeviceId = data.secondaryDeviceId;
+  }
+  else {
+    instance.options.secondaryDeviceId = get_uuid();
+  }
+  instance.cookieStorage.set(instance.options.cookieName + instance._storageSuffix, {
+    secondaryDeviceId: instance.options.secondaryDeviceId
+  });
+
+  instance.init(key, null, config, callback);
 }
 
 function _getGlobalEventProperties(route) {
@@ -64,7 +78,7 @@ class _ClickEvent extends _Event {
 }
 
 class VueAmplitude {
-  constructor(key, debug=false) {
+  constructor(key, debug=false, CLICK_DESCRIPTIONS={}, CLICK_DESTINATIONS={}, CLICK_SECTIONS={}) {
 
     if (key === undefined) {
       console.error("init must be passed a valid Key");
@@ -72,6 +86,9 @@ class VueAmplitude {
     }
     this._initialized = true;
     this._debug = debug;
+    this.CLICK_DESCRIPTIONS = CLICK_DESCRIPTIONS;
+    this.CLICK_DESTINATIONS = CLICK_DESTINATIONS;
+    this.CLICK_SECTIONS = CLICK_SECTIONS;
     return _init(key);
   }
 
@@ -80,11 +97,31 @@ class VueAmplitude {
       console.error("init must be called for Amplitude before accessing deviceId");
       return;
     }
-    return _deviceId();
+    return amplitude.getInstance().options.deviceId;
+  }
+
+  get secondary_device_id() {
+    if (this._initialized !== true) {
+      console.error("init must be called for Amplitude before accessing deviceId");
+      return;
+    }
+    return amplitude.getInstance().options.secondaryDeviceId;
   }
 
   get instance() {
+    if (this._initialized !== true) {
+      console.error("init must be called for Amplitude before accessing deviceId");
+      return;
+    }
     return amplitude.getInstance();
+  }
+
+  cookiesEnabled() {
+    if (this._initialized !== true) {
+      console.error("init must be called for Amplitude before accessing deviceId");
+      return;
+    }
+    return amplitude.getInstance().cookieStorage.__cookiesEnabled();
   }
 
   pageLoadEvent(route) {
