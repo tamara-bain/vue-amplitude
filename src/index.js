@@ -5,27 +5,26 @@ function get_uuid(ph) {
     : ( [1e7] + -1e3 + -4e3 + -8e3 + -1e11 ).replace(/[018]/g, get_uuid);
 }
 
-function _init(key, callback) {
+function _init(key) {
   let config = {
     batchEvents: false,
     includeReferrer: true,
     includeUtm: true
   };
 
-  const instance = amplitude.getInstance();
+  amplitude.getInstance().init(key, null, config, (instance) => {
+    let data = instance.cookieStorage.get(instance.options.cookieName + instance._storageSuffix);
+    if (data.secondaryDeviceId) {
+      instance.options.secondaryDeviceId = data.secondaryDeviceId;
+    }
+    else {
+      instance.options.secondaryDeviceId = get_uuid();
+    }
+    instance.cookieStorage.set(instance.options.cookieName + instance._storageSuffix, {
+      secondaryDeviceId: instance.options.secondaryDeviceId
+    });
 
-  let data = instance.cookieStorage.get(instance.options.cookieName + instance._storageSuffix);
-  if (data.secondaryDeviceId) {
-    instance.options.secondaryDeviceId = data.secondaryDeviceId;
-  }
-  else {
-    instance.options.secondaryDeviceId = get_uuid();
-  }
-  instance.cookieStorage.set(instance.options.cookieName + instance._storageSuffix, {
-    secondaryDeviceId: instance.options.secondaryDeviceId
   });
-
-  instance.init(key, null, config, callback);
 }
 
 function _getGlobalEventProperties(route) {
