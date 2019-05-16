@@ -1,9 +1,22 @@
 import amplitude from "amplitude-js";
-const SECONDARY_SUFFIX = '_secondary'
+const SECONDARY_DEVICE_ID_COOKIE = '_amplitude_indepedent_device_id'
 
 function get_uuid(ph) {
   return ph ? ( ph ^ Math.random() * 16 >> ph / 4 ).toString(16)
     : ( [1e7] + -1e3 + -4e3 + -8e3 + -1e11 ).replace(/[018]/g, get_uuid);
+}
+
+function load_secondary_device_id(instance) {
+  let data = instance.cookieStorage.get(SECONDARY_DEVICE_ID_COOKIE);
+  if (data && data.secondaryDeviceId) {
+    instance.options.secondaryDeviceId = data.secondaryDeviceId;
+  }
+  else {
+    instance.options.secondaryDeviceId = get_uuid();
+  }
+  instance.cookieStorage.set(SECONDARY_DEVICE_ID_COOKIE, {
+    secondaryDeviceId: instance.options.secondaryDeviceId
+  });
 }
 
 function _init(key) {
@@ -13,19 +26,9 @@ function _init(key) {
     includeUtm: true
   };
 
-  amplitude.getInstance().init(key, null, config, (instance) => {
-    let data = instance.cookieStorage.get(instance.options.cookieName + instance._storageSuffix + SECONDARY_SUFFIX);
-    if (data && data.secondaryDeviceId) {
-      instance.options.secondaryDeviceId = data.secondaryDeviceId;
-    }
-    else {
-      instance.options.secondaryDeviceId = get_uuid();
-    }
-    instance.cookieStorage.set(instance.options.cookieName + instance._storageSuffix + SECONDARY_SUFFIX, {
-      secondaryDeviceId: instance.options.secondaryDeviceId
-    });
-
-  });
+  const instance = amplitude.getInstance()
+  load_secondary_device_id(instance);
+  instance.init(key, null, config);
 }
 
 function _getGlobalEventProperties(route) {
@@ -92,7 +95,7 @@ class VueAmplitude {
     return _init(key);
   }
 
-  get device_id() {
+  device_id() {
     if (this._initialized !== true) {
       console.error("init must be called for Amplitude before accessing deviceId");
       return;
@@ -100,7 +103,7 @@ class VueAmplitude {
     return amplitude.getInstance().options.deviceId;
   }
 
-  get secondary_device_id() {
+  secondary_device_id() {
     if (this._initialized !== true) {
       console.error("init must be called for Amplitude before accessing deviceId");
       return;
@@ -166,6 +169,14 @@ class VueAmplitude {
 
 // noinspection JSUnusedGlobalSymbols
 export default {
+  device_id() {
+    return amplitude.getInstance().options.deviceId;
+  },
+  secondary_device_id() {
+    const instance = amplitude.getInstance()
+    load_secondary_device_id(instance);
+    return instance.options.secondaryDeviceId;
+  },
   install(Vue, { router, amplitude_key, debug = false } = {}) {
 
     const plugin = new VueAmplitude(amplitude_key, debug);
