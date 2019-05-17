@@ -1,4 +1,4 @@
-import amplitude from "amplitude-js";
+let amplitude = require("amplitude-js");
 const SECONDARY_DEVICE_ID_COOKIE = '_amplitude_indepedent_device_id'
 
 function get_uuid(ph) {
