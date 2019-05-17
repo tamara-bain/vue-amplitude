@@ -107,7 +107,7 @@ class VueAmplitude {
       console.error("init must be called for Amplitude before calling identify");
       return;
     }
-    if (this.user_id === undefined || this.user_id === null || this.user_id === '') {
+    if (user_id === undefined || user_id === null || user_id === '') {
       console.error("User id must be defined to identify a user.");
       return;
     }
