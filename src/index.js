@@ -188,6 +188,9 @@ export default {
     load_secondary_device_id(instance);
     return instance.options.secondaryDeviceId;
   },
+  session_id() {
+    return amplitude.getInstance()._sessionId;
+  },
   install(Vue, { router, amplitude_key, debug = false } = {}) {
 
     const plugin = new VueAmplitude(amplitude_key, debug);
