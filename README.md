@@ -10,7 +10,7 @@
     Then after your vue instance initialization:
         
         const amplitude_key = <YOUR AMPLITUDE API KEY>
-        Vue.use(VueAmplitude, {amplitude_key, router: app.$router, debug: false })
+        Vue.use(VueAmplitude, {amplitude_key, router: app.$router, debug: false, CLICK_DESCRIPTIONS: {}, CLICK_DESTINATIONS = {}, CLICK_SECTIONS = {} })
 
 
 # USAGE
