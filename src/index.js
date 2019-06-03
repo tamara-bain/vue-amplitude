@@ -193,6 +193,29 @@ var VueAmplitude =
         _amplitudeJs.default.getInstance().setUserId(user_id);
       }
     }, {
+      key: "set_user_properties",
+      value: function set_user_properties() {
+        var user_properties = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+        var set_once = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
+
+        if (this._initialized !== true) {
+          console.error("init must be called for Amplitude before calling set utm");
+          return;
+        }
+
+        var identify = new _amplitudeJs.default.Identify();
+
+        for (var key in user_properties) {
+          if (set_once === true) {
+            identify.setOnce(key, user_properties[key]);
+          } else {
+            identify.set(key, user_properties[key]);
+          }
+        }
+
+        _amplitudeJs.default.getInstance().identify(identify);
+      }
+    }, {
       key: "secondary_device_id",
       value: function secondary_device_id() {
         if (this._initialized !== true) {
