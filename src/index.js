@@ -163,8 +163,11 @@ class VueAmplitude {
           return;
       }
       let identify = new amplitude.Identify();
-      identify.add("SPLIT_TESTS", split_test);
-      amplitude.getInstance().identify(identify);
+      identify.append("SPLIT_TESTS", split_test);
+      this.instance.identify(identify);
+      if (this._debug) {
+      console.log('sent identify');
+    }
   }
   add_split_test_to_properties(properties) {
       let split_test = this.get_split_test();
