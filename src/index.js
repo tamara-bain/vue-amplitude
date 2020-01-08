@@ -1,361 +1,292 @@
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.default = void 0;
-
-var _amplitudeJs = _interopRequireDefault(require("amplitude-js"));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
-
-function _possibleConstructorReturn(self, call) { if (call && (_typeof(call) === "object" || typeof call === "function")) { return call; } return _assertThisInitialized(self); }
-
-function _assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
-
-function _getPrototypeOf(o) { _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) { return o.__proto__ || Object.getPrototypeOf(o); }; return _getPrototypeOf(o); }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function"); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, writable: true, configurable: true } }); if (superClass) _setPrototypeOf(subClass, superClass); }
-
-function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return _setPrototypeOf(o, p); }
-
-function _instanceof(left, right) { if (right != null && typeof Symbol !== "undefined" && right[Symbol.hasInstance]) { return right[Symbol.hasInstance](left); } else { return left instanceof right; } }
-
-function _classCallCheck(instance, Constructor) { if (!_instanceof(instance, Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
-
-function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
-
-var SECONDARY_DEVICE_ID_COOKIE = '_amplitude_independent_device_id';
+import amplitude from "amplitude-js";
+const SECONDARY_DEVICE_ID_COOKIE = '_amplitude_independent_device_id';
 
 function get_uuid(ph) {
-  return ph ? (ph ^ Math.random() * 16 >> ph / 4).toString(16) : ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, get_uuid);
+  return ph ? ( ph ^ Math.random() * 16 >> ph / 4 ).toString(16)
+    : ( [1e7] + -1e3 + -4e3 + -8e3 + -1e11 ).replace(/[018]/g, get_uuid);
 }
 
 function load_secondary_device_id(instance) {
-  var data = instance.cookieStorage.get(SECONDARY_DEVICE_ID_COOKIE);
-
+  let data = instance.cookieStorage.get(SECONDARY_DEVICE_ID_COOKIE);
   if (data && data.secondaryDeviceId) {
     instance.options.secondaryDeviceId = data.secondaryDeviceId;
-  } else {
+  }
+  else {
     instance.options.secondaryDeviceId = get_uuid();
   }
-
   instance.cookieStorage.set(SECONDARY_DEVICE_ID_COOKIE, {
     secondaryDeviceId: instance.options.secondaryDeviceId
   });
 }
 
 function _init(key) {
-  var config = {
+  let config = {
     batchEvents: false,
     includeReferrer: true,
     includeUtm: true
   };
 
-  var instance = _amplitudeJs.default.getInstance();
-
+  const instance = amplitude.getInstance();
   load_secondary_device_id(instance);
   instance.init(key, null, config);
 }
 
 function _getGlobalEventProperties(route) {
   return {
-    'PAGE': route.name,
-    'PATH': route.fullPath,
+    'PAGE' : route.name,
+    'PATH' : route.fullPath,
     'QUERY': route.query,
     'HASH': route.hash
   };
 }
 
 function isValidRoute(route) {
-  if (route === undefined || route === null || route.name === undefined || route.fullPath === undefined || route.query === undefined || route.hash === undefined) {
+  if (route === undefined || route === null || route.name === undefined || route.fullPath === undefined ||
+    route.query === undefined || route.hash === undefined) {
     console.error("Route object must be define 'page', 'fullPath', 'query', and 'hash' properties");
     return false;
   }
-
   return true;
 }
 
-var _Event =
-  /*#__PURE__*/
-  function () {
-    function _Event(global_event_properties) {
-      _classCallCheck(this, _Event);
+class _Event {
+  constructor(global_event_properties) {
+    this.geps = global_event_properties;
+    this.properties = {};
+  }
 
-      this.geps = global_event_properties;
-      this.properties = {};
+  sendEvent() {
+    let properties = Object.assign({}, this.properties, this.geps);
+    amplitude.getInstance().logEvent(this.name, properties);
+  }
+}
+
+class _PageLoadEvent extends _Event {
+  constructor(global_event_properties) {
+    super(global_event_properties);
+    this.name = "load-page";
+  }
+}
+
+class _ClickEvent extends _Event {
+  constructor(description, destination, section, global_event_properties) {
+    super(global_event_properties);
+    this.name = "click";
+    this.properties = {
+      'ITEM-DESCRIPTION': description,
+      'LINK-DESTINATION': destination,
+      'SECTION': section
+    };
+  }
+}
+
+class VueAmplitude {
+  constructor(key, debug=false, CLICK_DESCRIPTIONS={}, CLICK_DESTINATIONS={}, CLICK_SECTIONS={}, split_tests=null) {
+
+    if (key === undefined) {
+      console.error("init must be passed a valid Key");
+      return;
+    }
+    this._initialized = true;
+    this._debug = debug;
+    this.CLICK_DESCRIPTIONS = CLICK_DESCRIPTIONS;
+    this.CLICK_DESTINATIONS = CLICK_DESTINATIONS;
+    this.CLICK_SECTIONS = CLICK_SECTIONS;
+    this._split_tests=split_tests;
+    return _init(key);
+  }
+  device_id() {
+    if (this._initialized !== true) {
+      console.error("init must be called for Amplitude before accessing deviceId");
+      return;
+    }
+    return amplitude.getInstance().options.deviceId;
+  }
+  user_id() {
+    if (this._initialized !== true) {
+      console.error("init must be called for Amplitude before accessing userId");
+      return;
+    }
+    return amplitude.getInstance().options.userId;
+  }
+  identify(user_id) {
+    if (this._initialized !== true) {
+      console.error("init must be called for Amplitude before calling identify");
+      return;
+    }
+    if (user_id === undefined || user_id === null || user_id === '') {
+      console.error("User id must be defined to identify a user.");
+      return;
     }
 
-    _createClass(_Event, [{
-      key: "sendEvent",
-      value: function sendEvent() {
-        var properties = Object.assign({}, this.properties, this.geps);
-
-        _amplitudeJs.default.getInstance().logEvent(this.name, properties);
-      }
-    }]);
-
-    return _Event;
-  }();
-
-var _PageLoadEvent =
-  /*#__PURE__*/
-  function (_Event2) {
-    _inherits(_PageLoadEvent, _Event2);
-
-    function _PageLoadEvent(global_event_properties) {
-      var _this;
-
-      _classCallCheck(this, _PageLoadEvent);
-
-      _this = _possibleConstructorReturn(this, _getPrototypeOf(_PageLoadEvent).call(this, global_event_properties));
-      _this.name = "load-page";
-      return _this;
+    amplitude.getInstance().setUserId(user_id);
+  }
+  set_user_properties(user_properties={}, set_once=true) {
+    if (this._initialized !== true) {
+      console.error("init must be called for Amplitude before calling set user properties");
+      return;
     }
 
-    return _PageLoadEvent;
-  }(_Event);
+    let identify = new amplitude.Identify();
 
-var _ClickEvent =
-  /*#__PURE__*/
-  function (_Event3) {
-    _inherits(_ClickEvent, _Event3);
-
-    function _ClickEvent(description, destination, section, global_event_properties) {
-      var _this2;
-
-      _classCallCheck(this, _ClickEvent);
-
-      _this2 = _possibleConstructorReturn(this, _getPrototypeOf(_ClickEvent).call(this, global_event_properties));
-      _this2.name = "click";
-      _this2.properties = {
-        'ITEM-DESCRIPTION': description,
-        'LINK-DESTINATION': destination,
-        'SECTION': section
-      };
-      return _this2;
+    for (let key in user_properties) {
+      if (set_once === true) {
+        identify.setOnce(key, user_properties[key]);
+      }
+      else {
+        identify.set(key, user_properties[key]);
+      }
     }
 
-    return _ClickEvent;
-  }(_Event);
+    amplitude.getInstance().identify(identify);
+  }
+  get_split_test() {
+      if (this._initialized !== true) {
+          console.error("init must be called for Amplitude before calling set split tests");
+          return;
+      }
+      if (this._split_tests === undefined || this._split_tests === null || len(this._split_tests) === 0) {
+          null;
+      }
+      let user_id = this.user_id();
 
-var VueAmplitude =
-  /*#__PURE__*/
-  function () {
-    function VueAmplitude(key) {
-      var debug = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
-      var CLICK_DESCRIPTIONS = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
-      var CLICK_DESTINATIONS = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
-      var CLICK_SECTIONS = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : {};
-
-      _classCallCheck(this, VueAmplitude);
-
-      if (key === undefined) {
-        console.error("init must be passed a valid Key");
-        return;
+      if (user_id === undefined || user_id === null) {
+          user_id = this.device_id();
       }
 
-      this._initialized = true;
-      this._debug = debug;
-      this.CLICK_DESCRIPTIONS = CLICK_DESCRIPTIONS;
-      this.CLICK_DESTINATIONS = CLICK_DESTINATIONS;
-      this.CLICK_SECTIONS = CLICK_SECTIONS;
-      return _init(key);
+      let bucket_index = Number(user_id.replace(/\D/g, '')) % len(split_tests);
+      return this._split_tests[bucket_index];
+  }
+  set_split_test() {
+      let split_test = this.get_split_test();
+      if (split_test === null) {
+          return;
+      }
+      let identify = new amplitude.Identify()
+      identify.add("SPLIT_TESTS", split_test);
+      amplitude.getInstance().identify(identify);
+  }
+  add_split_test_to_properties(properties) {
+      let split_test = this.get_split_test();
+      if (split_test === null) {
+          return properties;
+      }
+      properties['SPLIT_TEST'] = split_test;
+      return properties;
+  }
+  secondary_device_id() {
+    if (this._initialized !== true) {
+      console.error("init must be called for Amplitude before accessing deviceId");
+      return;
     }
+    return amplitude.getInstance().options.secondaryDeviceId;
+  }
 
-    _createClass(VueAmplitude, [{
-      key: "device_id",
-      value: function device_id() {
-        if (this._initialized !== true) {
-          console.error("init must be called for Amplitude before accessing deviceId");
-          return;
-        }
+  get instance() {
+    if (this._initialized !== true) {
+      console.error("init must be called for Amplitude before accessing deviceId");
+      return;
+    }
+    return amplitude.getInstance();
+  }
 
-        return _amplitudeJs.default.getInstance().options.deviceId;
-      }
-    }, {
-      key: "identify",
-      value: function identify(user_id) {
-        if (this._initialized !== true) {
-          console.error("init must be called for Amplitude before calling identify");
-          return;
-        }
+  cookiesEnabled() {
+    if (this._initialized !== true) {
+      console.error("init must be called for Amplitude before accessing deviceId");
+      return;
+    }
+    return amplitude.getInstance().cookieStorage.__cookiesEnabled();
+  }
 
-        if (user_id === undefined || user_id === null || user_id === '') {
-          console.error("User id must be defined to identify a user.");
-          return;
-        }
+  pageLoadEvent(route) {
+    if (this._initialized !== true) {
+      console.error("init must be called for Amplitude before calling onPageLoad");
+      return;
+    }
+    if (!isValidRoute(route)) {
+      return;
+    }
+    const geps = _getGlobalEventProperties(route);
+    this.add_split_test_to_properties(geps);
+    const event = new _PageLoadEvent(geps);
+    event.sendEvent();
 
-        _amplitudeJs.default.getInstance().setUserId(user_id);
-      }
-    }, {
-      key: "set_user_properties",
-      value: function set_user_properties() {
-        var user_properties = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-        var set_once = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
+    if (this._debug) {
+      console.log('sent event ' + event.name);
+    }
+  }
 
-        if (this._initialized !== true) {
-          console.error("init must be called for Amplitude before calling set utm");
-          return;
-        }
+  clickEvent({ route, description, destination=null, section=null }) {
+    if (this._initialized !== true) {
+      console.error("init must be called for Amplitude before calling clickEvent");
+      return;
+    }
+    if (description === undefined) {
+      console.error("Click Event options must define 'item description'");
+      return;
+    }
+    if (!isValidRoute(route)) {
+      return;
+    }
+    const geps = _getGlobalEventProperties(route);
+    this.add_split_test_to_properties(geps);
+    const event = new _ClickEvent(description, destination, section, geps);
+    event.sendEvent();
 
-        var identify = new _amplitudeJs.default.Identify();
-
-        for (var key in user_properties) {
-          if (set_once === true) {
-            identify.setOnce(key, user_properties[key]);
-          } else {
-            identify.set(key, user_properties[key]);
-          }
-        }
-
-        _amplitudeJs.default.getInstance().identify(identify);
-      }
-    }, {
-      key: "secondary_device_id",
-      value: function secondary_device_id() {
-        if (this._initialized !== true) {
-          console.error("init must be called for Amplitude before accessing deviceId");
-          return;
-        }
-
-        return _amplitudeJs.default.getInstance().options.secondaryDeviceId;
-      }
-    }, {
-      key: "cookiesEnabled",
-      value: function cookiesEnabled() {
-        if (this._initialized !== true) {
-          console.error("init must be called for Amplitude before accessing deviceId");
-          return;
-        }
-
-        return _amplitudeJs.default.getInstance().cookieStorage.__cookiesEnabled();
-      }
-    }, {
-      key: "pageLoadEvent",
-      value: function pageLoadEvent(route) {
-        if (this._initialized !== true) {
-          console.error("init must be called for Amplitude before calling onPageLoad");
-          return;
-        }
-
-        if (!isValidRoute(route)) {
-          return;
-        }
-
-        var geps = _getGlobalEventProperties(route);
-
-        var event = new _PageLoadEvent(geps);
-        event.sendEvent();
-
-        if (this._debug) {
-          console.log('sent event ' + event.name);
-        }
-      }
-    }, {
-      key: "clickEvent",
-      value: function clickEvent(_ref) {
-        var route = _ref.route,
-          description = _ref.description,
-          _ref$destination = _ref.destination,
-          destination = _ref$destination === void 0 ? null : _ref$destination,
-          _ref$section = _ref.section,
-          section = _ref$section === void 0 ? null : _ref$section;
-
-        if (this._initialized !== true) {
-          console.error("init must be called for Amplitude before calling clickEvent");
-          return;
-        }
-
-        if (description === undefined) {
-          console.error("Click Event options must define 'item description'");
-          return;
-        }
-
-        if (!isValidRoute(route)) {
-          return;
-        }
-
-        var geps = _getGlobalEventProperties(route);
-
-        var event = new _ClickEvent(description, destination, section, geps);
-        event.sendEvent();
-
-        if (this._debug) {
-          console.log('sent event ' + event.name);
-        }
-      }
-    }, {
-      key: "instance",
-      get: function get() {
-        if (this._initialized !== true) {
-          console.error("init must be called for Amplitude before accessing deviceId");
-          return;
-        }
-
-        return _amplitudeJs.default.getInstance();
-      }
-    }]);
-
-    return VueAmplitude;
-  }(); // noinspection JSUnusedGlobalSymbols
+    if (this._debug) {
+      console.log('sent event ' + event.name);
+    }
+  }
+}
 
 
-var _default = {
-  device_id: function device_id() {
-    return _amplitudeJs.default.getInstance().options.deviceId;
+// noinspection JSUnusedGlobalSymbols
+export default {
+  device_id() {
+    return amplitude.getInstance().options.deviceId;
   },
-  secondary_device_id: function secondary_device_id() {
-    var instance = _amplitudeJs.default.getInstance();
-
+  secondary_device_id() {
+    const instance = amplitude.getInstance();
     load_secondary_device_id(instance);
     return instance.options.secondaryDeviceId;
   },
-  session_id: function session_id() {
-    return _amplitudeJs.default.getInstance()._sessionId;
+  session_id() {
+    return amplitude.getInstance()._sessionId;
   },
-  install: function install(Vue) {
-    var _ref2 = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {},
-      router = _ref2.router,
-      amplitude_key = _ref2.amplitude_key,
-      _ref2$debug = _ref2.debug,
-      debug = _ref2$debug === void 0 ? false : _ref2$debug;
+  install(Vue, { router, amplitude_key, split_tests = null, debug = false } = {}) {
 
-    var plugin = new VueAmplitude(amplitude_key, debug); // add easy access to the amplitude plugin
+    let plugin = new VueAmplitude(amplitude_key, debug, {}, {}, {}, split_tests);
+    setTimeout(() => plugin.set_split_test(), 1000)
+
+    // add easy access to the amplitude plugin
     // noinspection JSUnusedGlobalSymbols
+    Vue.prototype.$amplitude = plugin;
 
-    Vue.prototype.$amplitude = plugin; // add a before resolve hook to the router so that
+    // add a before resolve hook to the router so that
     // a page load event is sent everytime a page is loaded
-
-    router.beforeResolve(function (to, from, next) {
+    router.beforeResolve((to, from, next) => {
       plugin.pageLoadEvent(to);
       next();
     });
-    Vue.directive('amplitude-click', {
-      bind: function bind(el, binding) {
-        var item_description = binding.value.description;
 
+    Vue.directive('amplitude-click', {
+      bind(el, binding) {
+        const item_description = binding.value.description;
         if (item_description === undefined) {
           console.error("amplitude-click value must define 'description'");
           return;
         }
 
-        var route = binding.value.route;
-
+        const route = binding.value.route;
         if (route === undefined) {
           console.error("amplitude-click value must define 'route'");
           return;
         }
 
-        el.addEventListener('click', function () {
+        el.addEventListener('click', () => {
           plugin.clickEvent(binding.value);
         });
-      }
+      },
     });
-  }
+  },
 };
-exports.default = _default;

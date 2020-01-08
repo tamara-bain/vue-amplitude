@@ -81,7 +81,7 @@ class _ClickEvent extends _Event {
 }
 
 class VueAmplitude {
-  constructor(key, debug=false, CLICK_DESCRIPTIONS={}, CLICK_DESTINATIONS={}, CLICK_SECTIONS={}) {
+  constructor(key, debug=false, CLICK_DESCRIPTIONS={}, CLICK_DESTINATIONS={}, CLICK_SECTIONS={}, split_tests=null) {
 
     if (key === undefined) {
       console.error("init must be passed a valid Key");
@@ -92,15 +92,22 @@ class VueAmplitude {
     this.CLICK_DESCRIPTIONS = CLICK_DESCRIPTIONS;
     this.CLICK_DESTINATIONS = CLICK_DESTINATIONS;
     this.CLICK_SECTIONS = CLICK_SECTIONS;
+    this._split_tests=split_tests;
     return _init(key);
   }
-
   device_id() {
     if (this._initialized !== true) {
       console.error("init must be called for Amplitude before accessing deviceId");
       return;
     }
     return amplitude.getInstance().options.deviceId;
+  }
+  user_id() {
+    if (this._initialized !== true) {
+      console.error("init must be called for Amplitude before accessing userId");
+      return;
+    }
+    return amplitude.getInstance().options.userId;
   }
   identify(user_id) {
     if (this._initialized !== true) {
@@ -116,7 +123,7 @@ class VueAmplitude {
   }
   set_user_properties(user_properties={}, set_once=true) {
     if (this._initialized !== true) {
-      console.error("init must be called for Amplitude before calling set utm");
+      console.error("init must be called for Amplitude before calling set user properties");
       return;
     }
 
@@ -132,6 +139,40 @@ class VueAmplitude {
     }
 
     amplitude.getInstance().identify(identify);
+  }
+  get_split_test() {
+      if (this._initialized !== true) {
+          console.error("init must be called for Amplitude before calling set split tests");
+          return;
+      }
+      if (this._split_tests === undefined || this._split_tests === null || len(this._split_tests) === 0) {
+          null;
+      }
+      let user_id = this.user_id();
+
+      if (user_id === undefined || user_id === null) {
+          user_id = this.device_id();
+      }
+
+      let bucket_index = Number(user_id.replace(/\D/g, '')) % len(split_tests);
+      return this._split_tests[bucket_index];
+  }
+  set_split_test() {
+      let split_test = this.get_split_test();
+      if (split_test === null) {
+          return;
+      }
+      let identify = new amplitude.Identify()
+      identify.add("SPLIT_TESTS", split_test);
+      amplitude.getInstance().identify(identify);
+  }
+  add_split_test_to_properties(properties) {
+      let split_test = this.get_split_test();
+      if (split_test === null) {
+          return properties;
+      }
+      properties['SPLIT_TEST'] = split_test;
+      return properties;
   }
   secondary_device_id() {
     if (this._initialized !== true) {
@@ -166,6 +207,7 @@ class VueAmplitude {
       return;
     }
     const geps = _getGlobalEventProperties(route);
+    this.add_split_test_to_properties(geps);
     const event = new _PageLoadEvent(geps);
     event.sendEvent();
 
@@ -187,6 +229,7 @@ class VueAmplitude {
       return;
     }
     const geps = _getGlobalEventProperties(route);
+    this.add_split_test_to_properties(geps);
     const event = new _ClickEvent(description, destination, section, geps);
     event.sendEvent();
 
@@ -210,9 +253,10 @@ export default {
   session_id() {
     return amplitude.getInstance()._sessionId;
   },
-  install(Vue, { router, amplitude_key, debug = false } = {}) {
+  install(Vue, { router, amplitude_key, split_tests = null, debug = false } = {}) {
 
-    const plugin = new VueAmplitude(amplitude_key, debug);
+    let plugin = new VueAmplitude(amplitude_key, debug, {}, {}, {}, split_tests);
+    setTimeout(() => plugin.set_split_test(), 1000)
 
     // add easy access to the amplitude plugin
     // noinspection JSUnusedGlobalSymbols
