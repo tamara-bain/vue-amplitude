@@ -146,7 +146,7 @@ class VueAmplitude {
           return;
       }
       if (this._split_tests === undefined || this._split_tests === null || this._split_tests.length === 0) {
-          null;
+          return null;
       }
       let user_id = this.user_id();
 
