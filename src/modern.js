@@ -163,7 +163,7 @@ class VueAmplitude {
           return;
       }
       let identify = new amplitude.Identify();
-      identify.set("SAW-" + split_test.toUpperCase(), true);
+      identify.set("SPLIT-TEST-" + split_test.toUpperCase(), true);
       this.instance.identify(identify);
       if (this._debug) {
       console.log('sent identify');
@@ -263,6 +263,8 @@ export default {
     // add easy access to the amplitude plugin
     // noinspection JSUnusedGlobalSymbols
     Vue.prototype.$amplitude = plugin;
+
+    setTimeout(()=>plugin.set_split_test(), 2000);
 
     // add a before resolve hook to the router so that
     // a page load event is sent everytime a page is loaded

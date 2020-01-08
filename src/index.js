@@ -259,7 +259,7 @@ function () {
       }
 
       var identify = new _amplitudeJs.default.Identify();
-      identify.set("SAW-" + split_test.toUpperCase(), true);
+      identify.set("SPLIT-TEST-" + split_test.toUpperCase(), true);
       this.instance.identify(identify);
 
       if (this._debug) {
@@ -393,6 +393,10 @@ var _default = {
         debug = _ref2$debug === void 0 ? false : _ref2$debug;
 
     var plugin = new VueAmplitude(amplitude_key, debug, {}, {}, {}, split_tests); // add easy access to the amplitude plugin
+    setTimeout(function () {
+      return plugin.set_split_test();
+    }, 2000);
+
     // noinspection JSUnusedGlobalSymbols
 
     Vue.prototype.$amplitude = plugin; // add a before resolve hook to the router so that
