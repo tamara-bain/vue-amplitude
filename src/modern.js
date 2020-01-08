@@ -145,7 +145,7 @@ class VueAmplitude {
           console.error("init must be called for Amplitude before calling set split tests");
           return;
       }
-      if (this._split_tests === undefined || this._split_tests === null || len(this._split_tests) === 0) {
+      if (this._split_tests === undefined || this._split_tests === null || this._split_tests.length === 0) {
           null;
       }
       let user_id = this.user_id();
@@ -154,7 +154,7 @@ class VueAmplitude {
           user_id = this.device_id();
       }
 
-      let bucket_index = Number(user_id.replace(/\D/g, '')) % len(split_tests);
+      let bucket_index = Number(user_id.replace(/\D/g, '')) % this._split_tests.length;
       return this._split_tests[bucket_index];
   }
   set_split_test() {
@@ -162,7 +162,7 @@ class VueAmplitude {
       if (split_test === null) {
           return;
       }
-      let identify = new amplitude.Identify()
+      let identify = new amplitude.Identify();
       identify.add("SPLIT_TESTS", split_test);
       amplitude.getInstance().identify(identify);
   }
