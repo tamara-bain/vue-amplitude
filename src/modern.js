@@ -163,7 +163,7 @@ class VueAmplitude {
           return;
       }
       let identify = new amplitude.Identify();
-      identify.set("SAW-" + split_test.toUpperCase, true);
+      identify.set("SAW-" + split_test.toUpperCase(), true);
       this.instance.identify(identify);
       if (this._debug) {
       console.log('sent identify');

@@ -259,7 +259,7 @@ function () {
       }
 
       var identify = new _amplitudeJs.default.Identify();
-      identify.set("SAW-" + split_test.toUpperCase, true);
+      identify.set("SAW-" + split_test.toUpperCase(), true);
       this.instance.identify(identify);
 
       if (this._debug) {
