@@ -163,7 +163,7 @@ class VueAmplitude {
           return;
       }
       let identify = new amplitude.Identify();
-      identify.append("SPLIT_TESTS", split_test);
+      identify.set("SAW-" + split_test.toUpperCase, true);
       this.instance.identify(identify);
       if (this._debug) {
       console.log('sent identify');
@@ -259,7 +259,6 @@ export default {
   install(Vue, { router, amplitude_key, split_tests = null, debug = false } = {}) {
 
     let plugin = new VueAmplitude(amplitude_key, debug, {}, {}, {}, split_tests);
-    setTimeout(() => plugin.set_split_test(), 1000)
 
     // add easy access to the amplitude plugin
     // noinspection JSUnusedGlobalSymbols
