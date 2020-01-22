@@ -245,7 +245,7 @@ function () {
         user_id = this.device_id();
       }
 
-      var bucket_index = Number(user_id.replace(/\D/g, '')) % this._split_tests.length;
+      var bucket_index = Number(user_id.replace(/\D/g, '')[0]) % this._split_tests.length;
 
       return this._split_tests[bucket_index];
     }
